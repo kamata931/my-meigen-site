@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>テクスチャテスト</title>
+<style>
+  body {
+    margin: 0;
+    background-color: black;
+    font-family: "MS Mincho", "Hiragino Mincho Pro", serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex; /* 横並びにする */
+  }   
+
+  /* 左側1/5の緑エリア */
+  .Leftsidebar {
+    flex: 0.4; /* 全体の1/5 */
+    background-color: green;
+    min-height: 100vh;
+  }
+
+  /* 残り4/5のコンテンツ領域 */
+  .main {
+    flex: 1.618; /* 残り4/5 */
+    position: relative;
+    background-color: black; /* 右側は黒背景 */
+    overflow: hidden;
+  }
+
+  
+  .Rightsidebar {
+    flex: 0.4;
+    background-color: green;
+    min-height: 100vh;
+  }
+
+  .verticalText {
+    position: absolute;
+    color: white;
+    text-align: center;
+    line-height: 1.2em;
+    opacity: 1;
+    transition: opacity 2s linear;
+    font-size: 20px;
+    font-weight: 100;
+  }
+
+  .verticalText span {
+    display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+</style>
+</head>
+<body>
+  <div class="Leftsidebar"></div>
+  <div class="main" id="mainArea">
+    <!-- ここにだけ縦書きテキストを追加する -->
+  </div>
+  <div class="Rightsidebar"></div>
+
+<script>
+const activeTexts = [];
+
+function rectsOverlap(a, b, pad = 0) {
+    return !(
+        a.right + pad < b.left ||
+        a.left - pad > b.right ||
+        a.bottom + pad < b.top ||
+        a.top - pad > b.bottom 
+    );
+}
+
+function addVerticalText(text) {
+    const div = document.createElement("div");
+    div.className = "verticalText";
+    div.style.fontSize ="20px"; 
+    div.style.visibility = "hidden";
+
+    for (let i = 0; i < text.length; i++){
+        const span = document.createElement("span");
+        span.textContent = text[i];
+        span.style.opacity = 0;
+        div.appendChild(span);
+    }
+
+    const main = document.getElementById("mainArea");
+    main.appendChild(div); // ← main内にだけ追加する
+
+ // クリックイベントを追加
+  div.addEventListener("click", () => {
+    alert("あなたがクリックした言葉: " + text);
+  });
+   
+
+
+ let left, top, overlap;
+ //右端がはみ出さない様に最大位置を決めている
+ const maxLeft = Math.max(0, main.clientWidth  - div.offsetWidth);
+ const maxTop  = Math.max(0, main.clientHeight - div.offsetHeight);
+
+
+ do {
+  left = Math.random() * maxLeft;
+  top  = Math.random() * maxTop;
+
+  // 候補位置（.main 基準）
+  const candidateRect = {
+    left,
+    top,
+    right: left + div.offsetWidth,
+    bottom: top + div.offsetHeight
+  };
+
+  // 既存要素も .main 基準で矩形化
+  overlap = activeTexts.some(t => {
+    const rect = {
+      left: t.offsetLeft,
+      top: t.offsetTop,
+      right: t.offsetLeft + t.offsetWidth,
+      bottom: t.offsetTop + t.offsetHeight
+        };
+    return rectsOverlap(rect, candidateRect, 20); // 余白 20px
+       });
+
+    } while (overlap);
+
+    div.style.left = left + "px";
+    div.style.top  = top  + "px";
+
+    div.style.visibility = "visible";
+
+    activeTexts.push(div);
+
+    const spans = div.querySelectorAll("span");
+    spans.forEach((span, i) => {
+        setTimeout(() => {
+            span.style.opacity = 1;
+        }, i * 100);
+    });
+
+    setTimeout(() => {
+        div.style.opacity = 0;
+        setTimeout(() => {
+            div.remove();
+            const idx = activeTexts.indexOf(div);
+            if (idx > -1) activeTexts.splice(idx, 1);
+        }, 2000);
+    }, 5000);
+}
+
+fetch('quotes.json')
+.then(response => response.json())
+.then(quotes => {
+    setInterval(() => {
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        addVerticalText(randomQuote);
+    }, 2000);
+});
+</script>
+</body>
+</html>
